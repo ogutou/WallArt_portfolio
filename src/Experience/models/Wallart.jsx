@@ -5,8 +5,8 @@
  * @format
  */
 
-import React, { useMemo } from "react";
-import { useGLTF, useTexture } from "@react-three/drei";
+import React, { useMemo, useState, useRef } from "react";
+import { useGLTF, useTexture, meshBounds } from "@react-three/drei";
 import * as THREE from "three";
 
 const wallartdata = [
@@ -68,9 +68,12 @@ const wallartdata = [
 ];
 
 export function WallArt(props) {
+	const [hoveredBase, setHoveredBase] = useState(null);
+
 	const { nodes } = useGLTF("/models/wallart.glb");
 
 	//★ここからよくわからないので復習する
+
 	//dayテクスチャを一括ロード
 	const dayTextures = useTexture(wallartdata.map((d) => d.dayTexUrl));
 
@@ -100,6 +103,7 @@ export function WallArt(props) {
 	//mesh名の番号で対応して、materialをcloneしてmapで差し替え
 	const matByMeshName = useMemo(() => {
 		const out = {};
+
 		for (const [name, obj] of Object.entries(nodes)) {
 			if (!obj?.isMesh) continue;
 
@@ -107,87 +111,164 @@ export function WallArt(props) {
 			const tex = texById[id];
 			if (!tex) continue;
 
-			const mat = new THREE.MeshBasicMaterial({
+			const normal = new THREE.MeshBasicMaterial({
 				map: tex,
-				// できるだけ見た目を維持したいので旧マテリアルの設定を引き継ぐ
 				transparent: obj.material?.transparent ?? false,
 				opacity: obj.material?.opacity ?? 1,
 				alphaTest: obj.material?.alphaTest ?? 0,
 				side: obj.material?.side ?? THREE.FrontSide,
 			});
+			normal.toneMapped = false;
 
-			mat.toneMapped = false;
-
-			//保険
-			mat.needsUpdate = true;
-
-			out[name] = mat;
+			// ★ base(10_)だけ hover 作る
+			if (name.startsWith("10_")) {
+				const hover = normal.clone();
+				hover.color = normal.color.clone().multiplyScalar(1.7);
+				out[name] = { normal, hover };
+			} else {
+				out[name] = { normal };
+			}
 		}
+
 		return out;
 	}, [nodes, texById]);
 
-	//★ここまで
+	const mat = (name, isHovered = false) => {
+		const entry = matByMeshName[name];
+		if (!entry) return nodes[name]?.material;
+		if (isHovered && entry.hover) return entry.hover;
+		return entry.normal;
+	};
 
-	const mat = (name) => matByMeshName[name] ?? nodes[name].material;
+	//★ここまで
 
 	return (
 		<group {...props} dispose={null}>
+			<group>
+				{/* アイコン：当たり判定を無効化（ここ重要） */}
+				<mesh
+					geometry={nodes["11_github"].geometry}
+					material={mat("11_github")}
+					position={[0, 0.619, -0.194]}
+					rotation={[Math.PI / 2, 0, 0]}
+					scale={[1.191, 0.937, 1.191]}
+					raycast={() => null} // ★アイコンはホバー対象にしない
+				/>
+
+				{/* ベース：ここにイベントを付ける */}
+				<mesh
+					geometry={nodes["10_githubbase"].geometry}
+					material={mat("10_githubbase", hoveredBase === "github")}
+					position={[0, 0.619, -0.208]}
+					scale={[0.087, 0.087, 0.102]}
+					raycast={meshBounds} // 任意：薄い/小さいmeshを拾いやすくする
+					onPointerOver={(e) => {
+						e.stopPropagation();
+						setHoveredBase("github");
+						document.body.style.cursor = "pointer";
+					}}
+					onPointerOut={(e) => {
+						e.stopPropagation();
+						setHoveredBase(null);
+						document.body.style.cursor = "default";
+					}}
+					onClick={(e) => {
+						e.stopPropagation();
+						window.open("https://github.com/ogutou", "_blank");
+					}}
+				/>
+			</group>
+
+			<group>
+				{/* アイコン：当たり判定を無効化（ここ重要） */}
+				<mesh
+					geometry={nodes["11_note"].geometry}
+					material={mat("11_note")}
+					position={[-0.3, 0.619, -0.194]}
+					rotation={[Math.PI / 2, 0, 0]}
+					scale={[1.728, 1.03, 1.728]}
+					raycast={() => null} // ★アイコンはホバー対象にしない
+				/>
+
+				{/* ベース：ここにイベントを付ける */}
+				<mesh
+					geometry={nodes["10_notebase"].geometry}
+					material={mat("10_notebase", hoveredBase === "note")}
+					position={[-0.301, 0.619, -0.207]}
+					scale={[0.087, 0.087, 0.102]}
+					raycast={meshBounds} // 任意：薄い/小さいmeshを拾いやすくする
+					onPointerOver={(e) => {
+						e.stopPropagation();
+						setHoveredBase("note");
+						document.body.style.cursor = "pointer";
+					}}
+					onPointerOut={(e) => {
+						e.stopPropagation();
+						setHoveredBase(null);
+						document.body.style.cursor = "default";
+					}}
+					onClick={(e) => {
+						e.stopPropagation();
+						window.open("https://note.com/0gut0", "_blank");
+					}}
+				/>
+			</group>
+
+			<group>
+				{/* アイコン：当たり判定を無効化（ここ重要） */}
+				<mesh
+					geometry={nodes["11_X"].geometry}
+					material={mat("11_X")}
+					position={[0.3, 0.619, -0.194]}
+					rotation={[Math.PI / 2, 0, 0]}
+					scale={[1.095, 0.937, 1.095]}
+					raycast={() => null} // ★アイコンはホバー対象にしない
+				/>
+
+				{/* ベース：ここにイベントを付ける */}
+				<mesh
+					geometry={nodes["10_Xbase"].geometry}
+					material={mat("10_Xbase", hoveredBase === "X")}
+					position={[0.3, 0.619, -0.208]}
+					scale={[0.087, 0.087, 0.102]}
+					raycast={meshBounds} // 任意：薄い/小さいmeshを拾いやすくする
+					onPointerOver={(e) => {
+						e.stopPropagation();
+						setHoveredBase("X");
+						document.body.style.cursor = "pointer";
+					}}
+					onPointerOut={(e) => {
+						e.stopPropagation();
+						setHoveredBase(null);
+						document.body.style.cursor = "default";
+					}}
+					onClick={(e) => {
+						e.stopPropagation();
+						window.open("https://x.com/ogusa0210", "_blank");
+					}}
+				/>
+			</group>
 			<mesh
+				name="01_floor"
 				geometry={nodes["01_floor"].geometry}
 				material={mat("01_floor")}
 				position={[0, 0, 2.7]}
 			/>
 			<mesh
+				name="02_wall"
 				geometry={nodes["02_wall"].geometry}
 				material={mat("02_wall")}
 				position={[-0.204, 2.134, -0.213]}
 				rotation={[Math.PI / 2, 0, 0]}
 			/>
 			<mesh
-				geometry={nodes["11_github"].geometry}
-				material={mat("11_github")}
-				position={[0, 0.619, -0.194]}
-				rotation={[Math.PI / 2, 0, 0]}
-				scale={[1.191, 0.937, 1.191]}
-			/>
-			<mesh
-				geometry={nodes["10_githubbase"].geometry}
-				material={mat("10_githubbase")}
-				position={[0, 0.619, -0.208]}
-				scale={[0.087, 0.087, 0.102]}
-			/>
-			<mesh
-				geometry={nodes["11_note"].geometry}
-				material={mat("11_note")}
-				position={[-0.3, 0.619, -0.194]}
-				rotation={[Math.PI / 2, 0, 0]}
-				scale={[1.728, 1.03, 1.728]}
-			/>
-			<mesh
-				geometry={nodes["10_notebase"].geometry}
-				material={mat("10_notebase")}
-				position={[-0.301, 0.619, -0.207]}
-				scale={[0.087, 0.087, 0.102]}
-			/>
-			<mesh
-				geometry={nodes["11_X"].geometry}
-				material={mat("11_X")}
-				position={[0.3, 0.619, -0.194]}
-				rotation={[Math.PI / 2, 0, 0]}
-				scale={[1.095, 0.937, 1.095]}
-			/>
-			<mesh
-				geometry={nodes["10_Xbase"].geometry}
-				material={mat("10_Xbase")}
-				position={[0.3, 0.619, -0.208]}
-				scale={[0.087, 0.087, 0.102]}
-			/>
-			<mesh
+				name="03_cabinet"
 				geometry={nodes["03_cabinet"].geometry}
 				material={mat("03_cabinet")}
 				position={[-0.008, 0.281, 0.216]}
 			/>
 			<mesh
+				name="09_ArtMovie"
 				geometry={nodes["09_ArtMovie"].geometry}
 				material={mat("09_ArtMovie")}
 				position={[-1.046, 1.672, -0.191]}
@@ -195,6 +276,7 @@ export function WallArt(props) {
 				scale={[1.024, 1.244, 3]}
 			/>
 			<mesh
+				name="09_ArtPa-su"
 				geometry={nodes["09_ArtPa-su"].geometry}
 				material={mat("09_ArtPa-su")}
 				position={[-0.923, 0.966, -0.188]}
@@ -202,6 +284,7 @@ export function WallArt(props) {
 				scale={[0.686, 0.833, 3]}
 			/>
 			<mesh
+				name="09_ArtProfileImage"
 				geometry={nodes["09_ArtProfileImage"].geometry}
 				material={mat("09_ArtProfileImage")}
 				position={[0, 1.279, -0.198]}
@@ -209,18 +292,21 @@ export function WallArt(props) {
 				scale={[1, 1.849, 1]}
 			/>
 			<mesh
+				name="09_ArtThreejs"
 				geometry={nodes["09_ArtThreejs"].geometry}
 				material={mat("09_ArtThreejs")}
 				position={[0.986, 1.361, -0.198]}
 				scale={[1.49, 1.809, 3.575]}
 			/>
 			<mesh
+				name="08_flameA"
 				geometry={nodes["08_flameA"].geometry}
 				material={mat("08_flameA")}
 				position={[0.986, 1.361, -0.198]}
 				scale={[1.49, 1.809, 3.575]}
 			/>
 			<mesh
+				name="08_flameB"
 				geometry={nodes["08_flameB"].geometry}
 				material={mat("08_flameB")}
 				position={[0, 1.279, -0.198]}
@@ -228,6 +314,7 @@ export function WallArt(props) {
 				scale={[1, 1.849, 1]}
 			/>
 			<mesh
+				name="08_flameC"
 				geometry={nodes["08_flameC"].geometry}
 				material={mat("08_flameC")}
 				position={[-1.046, 1.672, -0.202]}
@@ -235,6 +322,7 @@ export function WallArt(props) {
 				scale={[1.024, 1.244, 3]}
 			/>
 			<mesh
+				name="08_flameD"
 				geometry={nodes["08_flameD"].geometry}
 				material={mat("08_flameD")}
 				position={[-0.923, 0.966, -0.197]}
@@ -242,26 +330,31 @@ export function WallArt(props) {
 				scale={[0.686, 0.833, 3]}
 			/>
 			<mesh
+				name="05_books"
 				geometry={nodes["05_books"].geometry}
 				material={mat("05_books")}
 				position={[0.379, 0.366, 0.02]}
 			/>
 			<mesh
+				name="04_branch"
 				geometry={nodes["04_branch"].geometry}
 				material={mat("04_branch")}
 				position={[0.992, 0.714, 0.023]}
 			/>
 			<mesh
+				name="05_branchvase"
 				geometry={nodes["05_branchvase"].geometry}
 				material={mat("05_branchvase")}
 				position={[0.933, 0.42, 0.021]}
 			/>
 			<mesh
+				name="06_vase"
 				geometry={nodes["06_vase"].geometry}
 				material={mat("06_vase")}
 				position={[-0.573, 0.426, 0.023]}
 			/>
 			<mesh
+				name="07_lamp"
 				geometry={nodes["07_lamp"].geometry}
 				material={mat("07_lamp")}
 				position={[0, 2, -0.213]}
